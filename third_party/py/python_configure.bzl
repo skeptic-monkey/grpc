@@ -291,6 +291,9 @@ def _create_single_version_package(
     """Creates the repository containing files set up to build with Python."""
     empty_include_rule = "filegroup(\n  name=\"{}_include\",\n  srcs=[],\n)".format(variety_name)
 
+    # Python import lib rule is only necessary when python is found and on Windows.
+    python_import_lib_genrule = ""
+
     python_bin = _get_python_bin(repository_ctx, bin_path_key, default_bin_path, allow_absent)
     if (python_bin == None or
         _check_python_bin(repository_ctx,
@@ -308,29 +311,29 @@ def _create_single_version_package(
             "{}_include".format(variety_name),
             "{}_include".format(variety_name),
         )
-    python_import_lib_genrule = ""
 
-    # To build Python C/C++ extension on Windows, we need to link to python import library pythonXY.lib
-    # See https://docs.python.org/3/extending/windows.html
-    if _is_windows(repository_ctx):
-        python_include = _normalize_path(python_include)
-        python_import_lib_name = _get_python_import_lib_name(
-            repository_ctx,
-            python_bin,
-            bin_path_key,
-        )
-        python_import_lib_src = python_include.rsplit(
-            "/",
-            1,
-        )[0] + "/libs/" + python_import_lib_name
-        python_import_lib_genrule = _symlink_genrule_for_dir(
-            repository_ctx,
-            None,
-            "",
-            "{}_import_lib".format(variety_name),
-            [python_import_lib_src],
-            [python_import_lib_name],
-        )
+
+        # To build Python C/C++ extension on Windows, we need to link to python import library pythonXY.lib
+        # See https://docs.python.org/3/extending/windows.html
+        if _is_windows(repository_ctx):
+            python_include = _normalize_path(python_include)
+            python_import_lib_name = _get_python_import_lib_name(
+                repository_ctx,
+                python_bin,
+                bin_path_key,
+            )
+            python_import_lib_src = python_include.rsplit(
+                "/",
+                1,
+            )[0] + "/libs/" + python_import_lib_name
+            python_import_lib_genrule = _symlink_genrule_for_dir(
+                repository_ctx,
+                None,
+                "",
+                "{}_import_lib".format(variety_name),
+                [python_import_lib_src],
+                [python_import_lib_name],
+            )
     _tpl(
         repository_ctx,
         "variety",
